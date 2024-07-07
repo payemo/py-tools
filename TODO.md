@@ -1,0 +1,2 @@
+- [ ] Fix bug with deleting the created archive if error occurred during the process.
+- [ ] Add additional argument parameter for specifying the output directory of an archive file.
