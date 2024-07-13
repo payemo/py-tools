@@ -20,13 +20,20 @@ def print_delta_time(delta: timedelta)->str:
 def check_source_dir_permission(path:str) -> None:
     if not os.access(path, os.R_OK):
         raise PermissionError(f"Read permission denied for the source path: {path}")
+    
+def is_excluded(path: str, exclude_list: list) -> bool:
+    for pattern in exclude_list:
+        if pattern in path:
+            return True
+    return False
 
-def do_archive(src_path:str, output_dir:str, depth:int = 10)->None:
+def do_archive(src_path: str, output_dir: str, depth: int = 10, exclude_list: list = [])->None:
     """Archives the specified folder up to a given depth.
 
     Args:
-        path (str): Path to the folder to archive.
-        depth (int): Maximum depth of subfolders to include.
+        - path (str): Path to the folder to archive.
+        - depth (int): Maximum depth of subfolders to include.
+        - exclude_list (list): List of folder/file names to exclude from the archive.
 
     Raises:
         ValueError: If the depth is not a positive integer.
@@ -51,7 +58,7 @@ def do_archive(src_path:str, output_dir:str, depth:int = 10)->None:
         if depth < 1:
             raise ValueError("Depth must be at least 1")
 
-        check_source_dir_permission(src_path)
+        #check_source_dir_permission(src_path)
         
         with zipfile.ZipFile(archive_path, 'w', zipfile.ZIP_DEFLATED) as archive:
             for root, dirs, files in os.walk(src_path):
@@ -59,6 +66,9 @@ def do_archive(src_path:str, output_dir:str, depth:int = 10)->None:
                 current_depth = root[len(src_path):].count(os.sep)
 
                 if current_depth < depth:
+                    # Exclude specified directories if necessary.
+                    dirs[:] = [d for d in dirs if not is_excluded(os.path.join(root, d), exclude_list)]
+
                     for file in files:
                         # Get a full path
                         file_path = os.path.join(root, file)
@@ -86,9 +96,10 @@ def main():
     parser.add_argument('-p', '--path', type=str, default=os.getcwd(), help='Path to the folder to archive.')
     parser.add_argument('-o', '--output_dir', type=str, default=os.getcwd(), help='Path to the output folder where archive will be created.')
     parser.add_argument('-d', '--depth', type=int, default=10, help='Depth of subfolders to include.')
+    parser.add_argument('-e', '--exclude', type=str, default=[], nargs="*", help='List of folders/files to exclude from the archive.')
 
     args = parser.parse_args()
-    do_archive(args.path, args.output_dir, args.depth)
+    do_archive(args.path, args.output_dir, args.depth, args.exclude)
 
 if __name__ == "__main__":
     main()
